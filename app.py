@@ -123,4 +123,6 @@ if submit:
             st.success("✅ Stream URL Resolved")
             st.code(m3u8_url, language="bash")
 
-            audio_peaks = get
+           audio_peaks = get_audio_peaks(m3u8_url)
+
+
