@@ -9,8 +9,8 @@ st.markdown("Smart highlight detection for any game, any POV — vertical, TikTo
 vod_url = st.text_input("Paste your Twitch VOD URL")
 
 # Twitch API credentials from Streamlit secrets
-client_id = st.secrets["rnzsvf09n8i0f2kw1zl0xn3ahagzk7"]
-client_secret = st.secrets["2yyo6w7h162fwkpqeaia8lkzg99cnn"]
+client_id = st.secrets["TWITCH_CLIENT_ID"]
+client_secret = st.secrets["TWITCH_CLIENT_SECRET"]
 
 # Function to get VOD metadata from Twitch
 def get_vod_info(vod_url, client_id, client_secret):
@@ -51,6 +51,7 @@ if vod_url:
 
         estimated_time = len(highlights) * 3  # 3 seconds per clip
         st.markdown(f"⏳ Estimated time to prepare clips: **{estimated_time} seconds**")
+
 
 
 
