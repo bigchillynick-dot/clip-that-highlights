@@ -123,6 +123,15 @@ if submit:
             st.success("✅ Stream URL Resolved")
             st.code(m3u8_url, language="bash")
 
-           audio_peaks = get_audio_peaks(m3u8_url)
+            audio_peaks = get_audio_peaks(m3u8_url)
+            chat_scores = {}  # Placeholder for future chat scoring
+            fusion_scores = score_hype(chat_scores, audio_peaks)
+            top_moments = get_top_hype_moments(fusion_scores)
+
+            if not top_moments:
+                st.warning("⚠️ No hype moments found. Try a different VOD.")
+            else:
+                slice_and_format_clips(m3u8_url, top_moments)
+
 
 
