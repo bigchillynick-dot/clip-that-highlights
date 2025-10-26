@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
-import time
+import ffmpeg
+import os
 
 st.set_page_config(page_title="Clip That Highlights", layout="wide")
 st.title("🎬 Clip That Highlights")
@@ -8,11 +9,9 @@ st.markdown("Smart highlight detection for any game, any POV — vertical, TikTo
 
 vod_url = st.text_input("Paste your Twitch VOD URL")
 
-# Twitch API credentials from Streamlit secrets
 client_id = st.secrets["TWITCH_CLIENT_ID"]
 client_secret = st.secrets["TWITCH_CLIENT_SECRET"]
 
-# Function to get VOD metadata from Twitch
 def get_vod_info(vod_url, client_id, client_secret):
     vod_id = vod_url.split('/')[-1].split('?')[0].replace('video/', '')
 
@@ -30,6 +29,17 @@ def get_vod_info(vod_url, client_id, client_secret):
     vod_response = requests.get(f'https://api.twitch.tv/helix/videos?id={vod_id}', headers=headers).json()
     return vod_response
 
+def slice_clip(m3u8_url, start_time, duration, output_path):
+    (
+        ffmpeg
+        .input(m3u8_url, ss=start_time, t=duration)
+        .output(output_path, codec='copy')
+        .run(overwrite_output=True)
+    )
+
+# Simulated test stream URL (replace with real .m3u8 later)
+test_stream_url = "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
+
 if vod_url:
     st.info("Fetching VOD metadata from Twitch…")
     vod_data = get_vod_info(vod_url, client_id, client_secret)
@@ -41,17 +51,21 @@ if vod_url:
         st.markdown(f"📅 Created at: **{vod_info['created_at']}**")
         st.markdown(f"🔗 [Watch VOD on Twitch]({vod_info['url']})")
 
-        # Simulated highlight detection
-        highlights = [
-            {"timestamp": "00:12:34", "label": "Clutch Escape"},
-            {"timestamp": "00:27:10", "label": "Funny Moment"},
-            {"timestamp": "00:45:02", "label": "Chat Explodes"},
-        ]
-        st.success(f"Found {len(highlights)} simulated highlights!")
+        # Simulated highlight timestamp
+        highlight_time = "00:00:10"
+        duration = 15
+        output_file = "highlight1.mp4"
 
-        estimated_time = len(highlights) * 3  # 3 seconds per clip
-        st.markdown(f"⏳ Estimated time to prepare clips: **{estimated_time} seconds**")
+        st.info(f"Slicing clip at {highlight_time} for {duration} seconds…")
+        slice_clip(test_stream_url, highlight_time, duration, output_file)
 
+        if os.path.exists(output_file):
+            with open(output_file, "rb") as f:
+                video_bytes = f.read()
 
-
-
+            st.video(video_bytes)
+            st.download_button("Download Highlight Clip", data=video_bytes, file_name=output_file)
+        else:
+            st.error("Clip slicing failed. Check stream URL or ffmpeg setup.")
+    else:
+        st.error("Could not fetch VOD info. Please check the URL or your Twitch API credentials.")
