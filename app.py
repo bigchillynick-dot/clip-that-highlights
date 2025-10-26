@@ -23,18 +23,18 @@ if vod_url:
     progress_bar = st.progress(0)
     status_placeholder = st.empty()
 
-    for i, clip in enumerate(highlights):
-        status_placeholder.markdown(f"🔄 Processing **{clip['label']}** — {clip['timestamp']}")
-        time.sleep(3)  # Simulate processing time per clip
-        progress_bar.progress(int(((i + 1) / len(highlights)) * 100))
+  for i, clip in enumerate(highlights):
+    status_placeholder.markdown(f"🔄 Processing **{clip['label']}** — {clip['timestamp']}")
+    time.sleep(3)
+    progress_bar.progress(int(((i + 1) / len(highlights)) * 100))
 
-        st.subheader(f"{clip['label']} — {clip['timestamp']}")
-        st.video("https://samplelib.com/lib/preview/mp4/sample-5s.mp4")  # Placeholder
-        st.download_button(
-            label="Download Vertical Clip",
-            data=b"",  # Replace with actual clip bytes
-            file_name=f"{clip['label'].lower().replace(' ', '_')}_{clip['timestamp'].replace(':', '-')}.mp4"
-        )
+    st.subheader(f"{clip['label']} — {clip['timestamp']}")
+    st.video("https://samplelib.com/lib/preview/mp4/sample-5s.mp4")
+    st.download_button(
+        label="Download Vertical Clip",
+        data=b"",
+        file_name=f"{clip['label'].lower().replace(' ', '_')}_{clip['timestamp'].replace(':', '-')}.mp4",
+        key=f"download_{i}"
 
     status_placeholder.markdown("✅ All clips are ready!")
     for clip in highlights:
@@ -45,6 +45,7 @@ if vod_url:
             data=b"",  # Replace with actual clip bytes
             file_name=f"{clip['label'].lower().replace(' ', '_')}_{clip['timestamp'].replace(':', '-')}.mp4"
         )
+
 
 
 
