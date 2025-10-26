@@ -1,6 +1,8 @@
 streamlit
+streamlink
 requests
 ffmpeg-python
 moviepy
 pandas
 pytube
+
