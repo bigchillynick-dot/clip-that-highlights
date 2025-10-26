@@ -41,7 +41,7 @@ def get_m3u8_url(video_id):
     gql_url = "https://gql.twitch.tv/gql"
     headers = {
         "Client-ID": CLIENT_ID,
-        "Authorization": f"Bearer {ACCESS_TOKEN}",
+        "Authorization": f"OAuth {ACCESS_TOKEN}",  # ✅ FIXED: use OAuth instead of Bearer
         "Content-Type": "application/json"
     }
     payload = [{
