@@ -30,13 +30,15 @@ def get_vod_info(vod_id, client_id, client_secret):
     vod_response = requests.get(f'https://api.twitch.tv/helix/videos?id={vod_id}', headers=headers).json()
     return vod_response
 
-def get_best_stream_url(vod_id):
+def get_valid_stream_url(vod_id):
     playlist_url = f"https://usher.ttvnw.net/vod/{vod_id}.m3u8"
     response = requests.get(playlist_url)
     lines = response.text.splitlines()
-    for i, line in enumerate(lines):
-        if line.endswith(".m3u8") and not line.startswith("#"):
-            return line
+    for i in range(len(lines)):
+        if lines[i].startswith("#EXT-X-STREAM-INF") and i + 1 < len(lines):
+            stream_url = lines[i + 1]
+            if stream_url.endswith(".m3u8"):
+                return stream_url
     return None
 
 def slice_clip(m3u8_url, start_time, duration, output_path):
@@ -67,7 +69,7 @@ if vod_url:
         st.markdown(f"📅 Created at: **{vod_info['created_at']}**")
         st.markdown(f"🔗 [Watch VOD on Twitch]({vod_info['url']})")
 
-        m3u8_url = get_best_stream_url(vod_id)
+        m3u8_url = get_valid_stream_url(vod_id)
         if m3u8_url:
             st.info(f"Using stream: `{m3u8_url}`", icon="📺")
 
@@ -91,4 +93,3 @@ if vod_url:
             st.error("❌ Could not find a valid stream in the playlist.")
     else:
         st.error("Could not fetch VOD info. Please check the URL or your Twitch API credentials.", icon="⚠️")
-
