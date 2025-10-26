@@ -3,7 +3,7 @@ import requests
 import re
 
 # ─────────────────────────────────────────────────────────────
-# 🔐 Load Twitch API Credentials from secrets
+# 🔐 Load Twitch API Credentials from Streamlit Cloud Secrets
 CLIENT_ID = st.secrets["CLIENT_ID"]
 ACCESS_TOKEN = st.secrets["ACCESS_TOKEN"]
 
