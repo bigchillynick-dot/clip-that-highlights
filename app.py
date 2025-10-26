@@ -3,9 +3,9 @@ import requests
 import re
 
 # ─────────────────────────────────────────────────────────────
-# 🔧 Twitch API Credentials
-CLIENT_ID = "your_actual_client_id"         # Replace with your Twitch Client ID
-ACCESS_TOKEN = "your_actual_token_here"     # Paste your OAuth token (no 'Bearer')
+# 🔐 Load Twitch API Credentials from secrets
+CLIENT_ID = st.secrets["CLIENT_ID"]
+ACCESS_TOKEN = st.secrets["ACCESS_TOKEN"]
 
 # ─────────────────────────────────────────────────────────────
 # 🎬 Streamlit UI Setup
