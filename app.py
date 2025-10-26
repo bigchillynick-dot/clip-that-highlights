@@ -11,7 +11,7 @@ ACCESS_TOKEN = "your_access_token"   # Replace with your OAuth token
 # 🎬 Streamlit UI Setup
 st.set_page_config(page_title="Clip That Highlights", layout="wide")
 st.title("🎬 Clip That Highlights")
-st.markdown("Paste any Twitch VOD URL and extract metadata using the Twitch API.")
+st.markdown("Paste any Twitch VOD URL to extract metadata and resolve the stream URL.")
 
 vod_url = st.text_input("Paste your Twitch VOD URL")
 submit = st.button("Submit")
@@ -27,4 +27,19 @@ def extract_video_id(vod_url):
 def get_vod_metadata(video_id):
     """Fetches metadata for a given Twitch video ID using the Twitch API."""
     url = f"https://api.twitch.tv/helix/videos?id={video_id}"
-    headers
+    headers = {
+        "Client-ID": CLIENT_ID,
+        "Authorization": f"Bearer {ACCESS_TOKEN}"
+    }
+    response = requests.get(url, headers=headers)
+    st.write("🔍 API response status:", response.status_code)
+    st.write("📦 Raw response JSON:", response.json())
+    if response.status_code == 200:
+        data = response.json().get("data", [])
+        return data[0] if data else None
+    else:
+        st.error(f"⚠️ Twitch API error: {response.status_code}")
+        st.text(response.text)
+        return None
+
+def get_m
