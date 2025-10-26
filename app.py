@@ -112,7 +112,11 @@ def slice_and_format_clips(m3u8_url, timestamps, clip_length=35):
 
     st.success(f"✅ {len(clips)} clips ready!")
 
-    # Display clips in grid
+      # Display clips in grid
     cols = st.columns(4)
     for i, clip in enumerate(clips):
         with cols[i % 4]:
+            st.video(clip)
+            st.download_button("Download", open(clip, "rb"), file_name=os.path.basename(clip))
+
+
