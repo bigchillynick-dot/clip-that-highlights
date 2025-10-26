@@ -30,8 +30,14 @@ def get_vod_info(vod_id, client_id, client_secret):
     vod_response = requests.get(f'https://api.twitch.tv/helix/videos?id={vod_id}', headers=headers).json()
     return vod_response
 
-def get_m3u8_url(vod_id):
-    return f"https://usher.ttvnw.net/vod/{vod_id}.m3u8"
+def get_chunked_stream_url(vod_id):
+    playlist_url = f"https://usher.ttvnw.net/vod/{vod_id}.m3u8"
+    response = requests.get(playlist_url)
+    lines = response.text.splitlines()
+    for i, line in enumerate(lines):
+        if "chunked" in line and i + 1 < len(lines):
+            return lines[i + 1]
+    return None
 
 def slice_clip(m3u8_url, start_time, duration, output_path):
     try:
@@ -43,7 +49,8 @@ def slice_clip(m3u8_url, start_time, duration, output_path):
         )
         return True
     except ffmpeg.Error as e:
-        st.error(f"ffmpeg error: {e}")
+        st.error("⚠️ ffmpeg slicing failed. Check the stream URL or ffmpeg setup.")
+        st.text(e.stderr.decode('utf-8') if hasattr(e, 'stderr') else str(e))
         return False
 
 if vod_url:
@@ -56,5 +63,31 @@ if vod_url:
     if "data" in vod_data and len(vod_data["data"]) > 0:
         vod_info = vod_data["data"][0]
         st.success(f"VOD Title: {vod_info['title']}", icon="✅")
-        st.markdown(f"🕒 Duration
+        st.markdown(f"🕒 Duration: **{vod_info['duration']}**")
+        st.markdown(f"📅 Created at: **{vod_info['created_at']}**")
+        st.markdown(f"🔗 [Watch VOD on Twitch]({vod_info['url']})")
 
+        m3u8_url = get_chunked_stream_url(vod_id)
+        if m3u8_url:
+            st.info(f"Using stream: `{m3u8_url}`", icon="📺")
+
+            highlight_time = "00:12:30"
+            duration = 20
+            output_file = "highlight1.mp4"
+
+            st.info(f"Slicing clip at {highlight_time} for {duration} seconds…", icon="✂️")
+            result = slice_clip(m3u8_url, highlight_time, duration, output_file)
+            st.write(f"Slice result: {result}")
+
+            if os.path.exists(output_file) and os.path.getsize(output_file) > 0:
+                with open(output_file, "rb") as f:
+                    video_bytes = f.read()
+
+                st.video(video_bytes, format="video/mp4", start_time=0, key="highlight_video")
+                st.download_button("Download Highlight Clip", data=video_bytes, file_name=output_file, key="highlight_download")
+            else:
+                st.error("⚠️ Clip file is missing or empty. Check ffmpeg setup or stream URL.")
+        else:
+            st.error("❌ Could not find a valid chunked stream in the playlist.")
+    else:
+        st.error("Could not fetch VOD info. Please check the URL or your Twitch API credentials.", icon="⚠️")
