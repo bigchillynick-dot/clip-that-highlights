@@ -27,7 +27,7 @@ def get_vod_metadata(video_id):
     url = f"https://api.twitch.tv/helix/videos?id={video_id}"
     headers = {
         "Client-ID": CLIENT_ID,
-        "Authorization": f"Bearer {ACCESS_TOKEN}"
+        "Authorization": f"Bearer {gz1w4ccclx51nck7rlx52sc572b44b}"
     }
     response = requests.get(url, headers=headers)
     st.write("🔍 Metadata API status:", response.status_code)
@@ -124,3 +124,4 @@ if submit:
                 st.write("🎯 Resolved .m3u8 URL:", m3u8_url if m3u8_url else "❌ Failed to resolve stream URL")
             else:
                 st.error("❌ No metadata returned. Check your Twitch credentials or video ID.")
+
