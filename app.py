@@ -1,5 +1,3 @@
-import streamlit as st
-
 st.set_page_config(page_title="Clip That Highlights", layout="wide")
 st.title("🎬 Clip That Highlights")
 st.markdown("Smart highlight detection for any game, any POV — vertical, TikTok-ready.")
@@ -23,3 +21,4 @@ if vod_url:
             data=b"",  # Replace with actual clip bytes
             file_name=f"{clip['label'].lower().replace(' ', '_')}_{clip['timestamp'].replace(':', '-')}.mp4"
         )
+
