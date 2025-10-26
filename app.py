@@ -3,9 +3,7 @@ import re
 import os
 import shutil
 from streamlink import Streamlink
-from moviepy.editor import VideoFileClip
-from moviepy.video.fx.all import resize
-from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
+import ffmpeg
 
 # ─────────────────────────────────────────────────────────────
 # 🎬 Streamlit UI Setup
@@ -36,44 +34,36 @@ def get_m3u8_from_streamlink(vod_url):
         st.error(f"❌ Streamlink error: {e}")
         return None
 
-def parse_duration_from_m3u8(m3u8_url):
-    try:
-        clip = VideoFileClip(m3u8_url)
-        return int(clip.duration)
-    except Exception as e:
-        st.warning(f"⚠️ Could not parse duration: {e}")
-        return None
-
-def slice_and_format_clips(m3u8_url, total_duration, clip_length=30):
+def slice_and_format_clips(m3u8_url, clip_length=30, max_clips=5):
     st.info("⏳ Starting clip slicing and formatting...")
     temp_dir = "clips"
     if os.path.exists(temp_dir):
         shutil.rmtree(temp_dir)
     os.makedirs(temp_dir)
 
-    clip_count = total_duration // clip_length
-    estimated_time = clip_count * 10
     progress = st.progress(0)
     status = st.empty()
-
     clips = []
-    for i in range(clip_count):
+
+    for i in range(max_clips):
         start = i * clip_length
-        end = start + clip_length
-        raw_path = f"{temp_dir}/raw_{i+1}.mp4"
-        final_path = f"{temp_dir}/clip_{i+1}.mp4"
+        out_path = f"{temp_dir}/clip_{i+1}.mp4"
 
         try:
-            ffmpeg_extract_subclip(m3u8_url, start, end, targetname=raw_path)
-            clip = VideoFileClip(raw_path)
-            vertical = resize(clip, height=1080).crop(x_center=clip.w/2, width=607)  # 9:16 crop
-            vertical.write_videofile(final_path, codec="libx264", audio_codec="aac", verbose=False, logger=None)
-            clips.append(final_path)
-        except Exception as e:
+            (
+                ffmpeg
+                .input(m3u8_url, ss=start, t=clip_length)
+                .filter('crop', 'iw/2', 'ih', 'iw/4', 0)  # vertical crop
+                .output(out_path, format='mp4', vcodec='libx264', acodec='aac')
+                .overwrite_output()
+                .run(quiet=True)
+            )
+            clips.append(out_path)
+        except ffmpeg.Error as e:
             st.warning(f"⚠️ Clip {i+1} failed: {e}")
 
-        progress.progress((i + 1) / clip_count)
-        status.text(f"Clip {i+1}/{clip_count} — ETA: {estimated_time - (i * 10)}s")
+        progress.progress((i + 1) / max_clips)
+        status.text(f"Clip {i+1}/{max_clips} — ETA: {((max_clips - i - 1) * 8)}s")
 
     st.success("✅ All clips sliced and formatted!")
     for clip in clips:
@@ -96,12 +86,6 @@ if submit:
         if m3u8_url:
             st.success("✅ Stream URL Resolved")
             st.code(m3u8_url, language="bash")
-
-            duration = parse_duration_from_m3u8(m3u8_url)
-            if duration:
-                st.markdown(f"**Total Duration:** {duration} seconds")
-                slice_and_format_clips(m3u8_url, duration)
-            else:
-                st.error("❌ Could not determine video duration.")
+            slice_and_format_clips(m3u8_url)
         else:
             st.error("❌ Failed to resolve stream URL using Streamlink.")
