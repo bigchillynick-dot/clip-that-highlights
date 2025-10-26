@@ -50,5 +50,7 @@ if vod_url:
         st.success(f"Found {len(highlights)} simulated highlights!")
 
         estimated_time = len(highlights) * 3  # 3 seconds per clip
-        st.markdown(f"⏳ Estimated time to prepare clips: **{estimated_time} seconds**
+        st.markdown(f"⏳ Estimated time to prepare clips: **{estimated_time} seconds**")
+
+
 
