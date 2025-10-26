@@ -20,26 +20,28 @@ submit = st.button("Submit")
 # 🧠 Utility Functions
 
 def extract_video_id(vod_url):
-    """Extracts the video ID from a Twitch VOD URL."""
     match = re.search(r"twitch\.tv/videos/(\d+)", vod_url)
     return match.group(1) if match else None
 
 def get_vod_metadata(video_id):
-    """Fetches metadata for a given Twitch video ID using the Twitch API."""
     url = f"https://api.twitch.tv/helix/videos?id={video_id}"
     headers = {
         "Client-ID": CLIENT_ID,
         "Authorization": f"Bearer {ACCESS_TOKEN}"
     }
     response = requests.get(url, headers=headers)
-    st.write("🔍 API response status:", response.status_code)
-    st.write("📦 Raw response JSON:", response.json())
+    st.write("🔍 Metadata API status:", response.status_code)
+    st.write("📦 Metadata response:", response.json())
     if response.status_code == 200:
         data = response.json().get("data", [])
         return data[0] if data else None
-    else:
-        st.error(f"⚠️ Twitch API error: {response.status_code}")
-        st.text(response.text)
-        return None
+    return None
 
-def get_m
+def get_m3u8_url(video_id):
+    gql_url = "https://gql.twitch.tv/gql"
+    headers = {
+        "Client-ID": CLIENT_ID,
+        "Authorization": f"Bearer {ACCESS_TOKEN}",
+        "Content-Type": "application/json"
+    }
+    payload
