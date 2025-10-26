@@ -4,10 +4,8 @@ import os
 import shutil
 from streamlink import Streamlink
 import ffmpeg
-import requests
+from chat_downloader import ChatDownloader
 from collections import defaultdict
-from datetime import datetime
-import math
 
 # ─────────────────────────────────────────────────────────────
 # 🎬 Streamlit UI Setup
@@ -38,30 +36,18 @@ def get_m3u8_from_streamlink(vod_url):
         st.error(f"❌ Streamlink error: {e}")
         return None
 
-def get_chat_messages(video_id):
-    url = f"https://api.twitch.tv/v5/videos/{video_id}/comments"
-    headers = {
-        "Client-ID": "kimne78kx3ncx6brgo4mv6wki5h1ko",  # Public client ID used for chat replay
-        "Accept": "application/vnd.twitchtv.v5+json"
-    }
-    params = {"content_offset_seconds": 0}
-    messages = []
-
-    with st.spinner("📥 Downloading chat replay..."):
-        while True:
-            resp = requests.get(url, headers=headers, params=params)
-            if resp.status_code != 200:
-                break
-            data = resp.json()
-            for comment in data.get("comments", []):
-                offset = int(comment["content_offset_seconds"])
-                body = comment["message"]["body"]
-                messages.append((offset, body))
-            if "_next" in data:
-                params["cursor"] = data["_next"]
-            else:
-                break
-    return messages
+def get_chat_messages(vod_url):
+    try:
+        chat = ChatDownloader().get_chat(vod_url)
+        messages = []
+        for msg in chat:
+            offset = int(msg.get("timestamp", 0) / 1000)
+            body = msg.get("message", "")
+            messages.append((offset, body))
+        return messages
+    except Exception as e:
+        st.error(f"❌ ChatDownloader error: {e}")
+        return []
 
 def score_hype(messages):
     hype_scores = defaultdict(int)
@@ -139,7 +125,7 @@ if submit:
             if not m3u8_url:
                 st.error("❌ Failed to resolve stream URL.")
             else:
-                messages = get_chat_messages(video_id)
+                messages = get_chat_messages(vod_url)
                 if not messages:
                     st.error("❌ Could not retrieve chat messages.")
                 else:
