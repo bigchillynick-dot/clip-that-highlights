@@ -1,46 +1,31 @@
 import streamlit as st
-import requests
+import subprocess
 import ffmpeg
 import os
 
 st.set_page_config(page_title="Clip That Highlights", layout="wide")
 st.title("🎬 Clip That Highlights")
-st.markdown("Paste any Twitch VOD URL or a direct .m3u8 stream to slice clips instantly.")
+st.markdown("Paste any Twitch VOD URL and slice clips instantly using Streamlink + ffmpeg.")
 
 vod_url = st.text_input("Paste your Twitch VOD URL", key="vod_input")
-manual_m3u8 = st.text_input("Or paste a direct .m3u8 stream URL", key="manual_stream")
 
-client_id = st.secrets["TWITCH_CLIENT_ID"]
-client_secret = st.secrets["TWITCH_CLIENT_SECRET"]
-
-def extract_vod_id(vod_url):
-    return vod_url.split('/')[-1].split('?')[0].replace('video/', '')
-
-def get_vod_info(vod_id, client_id, client_secret):
-    auth_response = requests.post('https://id.twitch.tv/oauth2/token', {
-        'client_id': client_id,
-        'client_secret': client_secret,
-        'grant_type': 'client_credentials'
-    }).json()
-    access_token = auth_response['access_token']
-
-    headers = {
-        'Client-ID': client_id,
-        'Authorization': f'Bearer {access_token}'
-    }
-    vod_response = requests.get(f'https://api.twitch.tv/helix/videos?id={vod_id}', headers=headers).json()
-    return vod_response
-
-def get_valid_stream_url(vod_id):
-    playlist_url = f"https://usher.ttvnw.net/vod/{vod_id}.m3u8"
-    response = requests.get(playlist_url)
-    lines = response.text.splitlines()
-    for i in range(len(lines)):
-        if lines[i].startswith("#EXT-X-STREAM-INF") and i + 1 < len(lines):
-            stream_url = lines[i + 1]
-            if stream_url.endswith(".m3u8"):
-                return stream_url
-    return None
+def extract_streamlink_url(vod_url):
+    try:
+        result = subprocess.run(
+            ["streamlink", vod_url, "best", "--stream-url"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        return result.stdout.strip()
+    except subprocess.CalledProcessError as e:
+        st.error("⚠️ Streamlink failed to extract the stream.")
+        error_output = getattr(e, "stderr", None)
+        if error_output:
+            st.text(error_output)
+        else:
+            st.text(str(e))
+        return None
 
 def slice_clip(m3u8_url, start_time, duration, output_path):
     try:
@@ -53,50 +38,35 @@ def slice_clip(m3u8_url, start_time, duration, output_path):
         return True
     except ffmpeg.Error as e:
         st.error("⚠️ ffmpeg slicing failed. Check the stream URL or ffmpeg setup.")
-        st.text(e.stderr.decode('utf-8') if hasattr(e, 'stderr') else str(e))
+        error_output = getattr(e, "stderr", None)
+        if error_output:
+            st.text(error_output.decode("utf-8"))
+        else:
+            st.text(str(e))
         return False
 
-m3u8_url = None
-vod_id = None
-
 if vod_url:
-    vod_id = extract_vod_id(vod_url)
-    st.info(f"Extracted VOD ID: {vod_id}", icon="🆔")
+    st.info("Extracting stream URL with Streamlink…", icon="🔍")
+    m3u8_url = extract_streamlink_url(vod_url)
 
-    st.info("Fetching VOD metadata from Twitch…", icon="🔍")
-    vod_data = get_vod_info(vod_id, client_id, client_secret)
+    if m3u8_url:
+        st.success(f"Stream URL: `{m3u8_url}`", icon="✅")
 
-    if "data" in vod_data and len(vod_data["data"]) > 0:
-        vod_info = vod_data["data"][0]
-        st.success(f"VOD Title: {vod_info['title']}", icon="✅")
-        st.markdown(f"🕒 Duration: **{vod_info['duration']}**")
-        st.markdown(f"📅 Created at: **{vod_info['created_at']}**")
-        st.markdown(f"🔗 [Watch VOD on Twitch]({vod_info['url']})")
+        highlight_time = "00:12:30"
+        duration = 20
+        output_file = "highlight1.mp4"
 
-        m3u8_url = get_valid_stream_url(vod_id)
-        if not m3u8_url:
-            st.warning("Could not auto-extract stream. Try pasting a direct .m3u8 URL below.", icon="⚠️")
+        st.info(f"Slicing clip at {highlight_time} for {duration} seconds…", icon="✂️")
+        result = slice_clip(m3u8_url, highlight_time, duration, output_file)
+        st.write(f"Slice result: {result}")
 
-if manual_m3u8:
-    m3u8_url = manual_m3u8
-    st.info("Using manually provided .m3u8 stream.", icon="🛠️")
+        if os.path.exists(output_file) and os.path.getsize(output_file) > 0:
+            with open(output_file, "rb") as f:
+                video_bytes = f.read()
 
-if m3u8_url:
-    st.info(f"Using stream: `{m3u8_url}`", icon="📺")
-
-    highlight_time = "00:12:30"
-    duration = 20
-    output_file = "highlight1.mp4"
-
-    st.info(f"Slicing clip at {highlight_time} for {duration} seconds…", icon="✂️")
-    result = slice_clip(m3u8_url, highlight_time, duration, output_file)
-    st.write(f"Slice result: {result}")
-
-    if os.path.exists(output_file) and os.path.getsize(output_file) > 0:
-        with open(output_file, "rb") as f:
-            video_bytes = f.read()
-
-        st.video(video_bytes, format="video/mp4", start_time=0, key="highlight_video")
-        st.download_button("Download Highlight Clip", data=video_bytes, file_name=output_file, key="highlight_download")
+            st.video(video_bytes, format="video/mp4", start_time=0, key="highlight_video")
+            st.download_button("Download Highlight Clip", data=video_bytes, file_name=output_file, key="highlight_download")
+        else:
+            st.error("⚠️ Clip file is missing or empty. Check ffmpeg setup or stream URL.")
     else:
-        st.error("⚠️ Clip file is missing or empty. Check ffmpeg setup or stream URL.")
+        st.warning("Streamlink could not extract a valid stream. Try a different VOD or check access.", icon="⚠️")
