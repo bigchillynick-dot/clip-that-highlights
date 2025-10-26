@@ -1,4 +1,6 @@
 streamlit
-moviepy
+requests
 ffmpeg-python
-
+moviepy
+pandas
+pytube
