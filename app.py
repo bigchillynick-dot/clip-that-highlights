@@ -1,12 +1,12 @@
 import streamlit as st
-import subprocess
 import re
+from streamlink import Streamlink
 
 # ─────────────────────────────────────────────────────────────
 # 🎬 Streamlit UI Setup
 st.set_page_config(page_title="Clip That Highlights", layout="wide")
 st.title("🎬 Clip That Highlights")
-st.markdown("Paste any Twitch VOD URL to extract the stream URL using Streamlink.")
+st.markdown("Paste any Twitch VOD URL to extract the stream URL using Streamlink’s Python API.")
 
 vod_url = st.text_input("Paste your Twitch VOD URL")
 submit = st.button("Submit")
@@ -20,13 +20,12 @@ def extract_video_id(vod_url):
 
 def get_m3u8_from_streamlink(vod_url):
     try:
-        cmd = ["streamlink", "--stream-url", vod_url, "best"]
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode == 0:
-            return result.stdout.strip()
+        session = Streamlink()
+        streams = session.streams(vod_url)
+        if "best" in streams:
+            return streams["best"].url
         else:
-            st.error("❌ Streamlink failed. Make sure it's installed and the VOD is valid.")
-            st.text(result.stderr)
+            st.error("❌ No 'best' stream found. Try a different VOD.")
             return None
     except Exception as e:
         st.error(f"❌ Streamlink error: {e}")
