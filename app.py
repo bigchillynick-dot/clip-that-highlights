@@ -5,9 +5,10 @@ import os
 
 st.set_page_config(page_title="Clip That Highlights", layout="wide")
 st.title("🎬 Clip That Highlights")
-st.markdown("Paste any Twitch VOD URL and slice clips instantly — hype detection coming next.")
+st.markdown("Paste any Twitch VOD URL or a direct .m3u8 stream to slice clips instantly.")
 
 vod_url = st.text_input("Paste your Twitch VOD URL", key="vod_input")
+manual_m3u8 = st.text_input("Or paste a direct .m3u8 stream URL", key="manual_stream")
 
 client_id = st.secrets["TWITCH_CLIENT_ID"]
 client_secret = st.secrets["TWITCH_CLIENT_SECRET"]
@@ -55,6 +56,9 @@ def slice_clip(m3u8_url, start_time, duration, output_path):
         st.text(e.stderr.decode('utf-8') if hasattr(e, 'stderr') else str(e))
         return False
 
+m3u8_url = None
+vod_id = None
+
 if vod_url:
     vod_id = extract_vod_id(vod_url)
     st.info(f"Extracted VOD ID: {vod_id}", icon="🆔")
@@ -70,26 +74,29 @@ if vod_url:
         st.markdown(f"🔗 [Watch VOD on Twitch]({vod_info['url']})")
 
         m3u8_url = get_valid_stream_url(vod_id)
-        if m3u8_url:
-            st.info(f"Using stream: `{m3u8_url}`", icon="📺")
+        if not m3u8_url:
+            st.warning("Could not auto-extract stream. Try pasting a direct .m3u8 URL below.", icon="⚠️")
 
-            highlight_time = "00:12:30"
-            duration = 20
-            output_file = "highlight1.mp4"
+if manual_m3u8:
+    m3u8_url = manual_m3u8
+    st.info("Using manually provided .m3u8 stream.", icon="🛠️")
 
-            st.info(f"Slicing clip at {highlight_time} for {duration} seconds…", icon="✂️")
-            result = slice_clip(m3u8_url, highlight_time, duration, output_file)
-            st.write(f"Slice result: {result}")
+if m3u8_url:
+    st.info(f"Using stream: `{m3u8_url}`", icon="📺")
 
-            if os.path.exists(output_file) and os.path.getsize(output_file) > 0:
-                with open(output_file, "rb") as f:
-                    video_bytes = f.read()
+    highlight_time = "00:12:30"
+    duration = 20
+    output_file = "highlight1.mp4"
 
-                st.video(video_bytes, format="video/mp4", start_time=0, key="highlight_video")
-                st.download_button("Download Highlight Clip", data=video_bytes, file_name=output_file, key="highlight_download")
-            else:
-                st.error("⚠️ Clip file is missing or empty. Check ffmpeg setup or stream URL.")
-        else:
-            st.error("❌ Could not find a valid stream in the playlist.")
+    st.info(f"Slicing clip at {highlight_time} for {duration} seconds…", icon="✂️")
+    result = slice_clip(m3u8_url, highlight_time, duration, output_file)
+    st.write(f"Slice result: {result}")
+
+    if os.path.exists(output_file) and os.path.getsize(output_file) > 0:
+        with open(output_file, "rb") as f:
+            video_bytes = f.read()
+
+        st.video(video_bytes, format="video/mp4", start_time=0, key="highlight_video")
+        st.download_button("Download Highlight Clip", data=video_bytes, file_name=output_file, key="highlight_download")
     else:
-        st.error("Could not fetch VOD info. Please check the URL or your Twitch API credentials.", icon="⚠️")
+        st.error("⚠️ Clip file is missing or empty. Check ffmpeg setup or stream URL.")
