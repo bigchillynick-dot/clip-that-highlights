@@ -112,11 +112,38 @@ def slice_and_format_clips(m3u8_url, timestamps, clip_length=35):
 
     st.success(f"✅ {len(clips)} clips ready!")
 
-      # Display clips in grid
+    # Display clips in grid
     cols = st.columns(4)
     for i, clip in enumerate(clips):
         with cols[i % 4]:
             st.video(clip)
             st.download_button("Download", open(clip, "rb"), file_name=os.path.basename(clip))
 
+# ─────────────────────────────────────────────────────────────
+# 🚀 Main Logic
 
+if submit:
+    st.write("✅ Submit button clicked")
+    if not vod_url:
+        st.warning("⚠️ No URL detected. Please paste a Twitch VOD link.")
+    else:
+        st.write("📨 VOD URL received:", vod_url)
+        video_id = extract_video_id(vod_url)
+        st.write("🔧 Extracted video ID:", video_id)
+
+        m3u8_url = get_m3u8_from_streamlink(vod_url)
+        if not m3u8_url:
+            st.error("❌ Failed to resolve stream URL.")
+        else:
+            st.success("✅ Stream URL Resolved")
+            st.code(m3u8_url, language="bash")
+
+            audio_peaks = get_audio_peaks(m3u8_url)
+            chat_scores = {}  # Placeholder for future chat scoring
+            fusion_scores = score_hype(chat_scores, audio_peaks)
+            top_moments = get_top_hype_moments(fusion_scores)
+
+            if not top_moments:
+                st.warning("⚠️ No hype moments found. Try a different VOD.")
+            else:
+                slice_and_format_clips(m3u8_url, top_moments)
