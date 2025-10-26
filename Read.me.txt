@@ -1,0 +1,9 @@
+# Clip That Highlights
+
+Smart highlight detection for any game, any POV — vertical, TikTok-ready.
+
+## Features
+- Paste any Twitch VOD URL
+- Detects clutch, funny, or emotional moments
+- Vertical formatting for TikTok
+- Preview and download clips
